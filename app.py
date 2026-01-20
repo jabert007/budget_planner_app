@@ -126,7 +126,12 @@ if st.session_state.auth_mode == "login":
         if not l_phone_num or not password_input:
             st.error(txt("req_fields"))
         else:
-            full_login_phone = f"{l_country_code}{l_phone_num}"
+            # Sanitize: If user typed +91 in the text box, remove it to avoid +91+91...
+            clean_num = l_phone_num.strip()
+            if clean_num.startswith(l_country_code):
+                clean_num = clean_num[len(l_country_code):]
+                
+            full_login_phone = f"{l_country_code}{clean_num}"
             user = login_user(full_login_phone, password_input)
             if user:
                 st.session_state.logged_in = True
@@ -161,7 +166,12 @@ elif st.session_state.auth_mode == "register":
             if not phone_num or not new_email or not new_pass:
                 st.error(txt("req_fields"))
             else:
-                full_phone = f"{country_code}{phone_num}"
+                # Sanitize: If user typed +91...
+                clean_num = phone_num.strip()
+                if clean_num.startswith(country_code):
+                    clean_num = clean_num[len(country_code):]
+
+                full_phone = f"{country_code}{clean_num}"
                 if len(full_phone) > 20:
                      st.error(txt("phone_long"))
                 else:
