@@ -35,45 +35,97 @@ init_users_db()
 
 # ------------------- CUSTOM PAGE STYLE -------------------
 # ------------------- CUSTOM PAGE STYLE -------------------
+# ------------------- CUSTOM PAGE STYLE -------------------
 st.markdown("""
     <style>
-    body {
-        background: linear-gradient(135deg, #74ABE2, #5563DE);
-    }
+    /* Professional Aurora Background */
     .stApp {
-        background-color: transparent;
+        background-color: #ff9a9e;
+        background-image: linear-gradient(0deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+        background-attachment: fixed;
     }
+    
+    /* Login Card Container */
     .login-card {
-        background-color: white;
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        margin-top: 20px;
-        display: table-column;
+        background-color: rgba(255, 255, 255, 0.95);
+        padding: 2.5rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        margin-top: 0px; /* Remove top margin */
     }
+
+    /* TYPOGRAPHY */
     .title {
-        text-align: left; /* Changed to Left */
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #333 !important; /* Force Dark Color */
-        margin-bottom: 0.5rem;
+        text-align: left;
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #1a1a1a !important;
+        margin-bottom: 0.2rem;
+        font-family: 'Inter', sans-serif;
     }
     .subtitle {
         text-align: left;
-        color: #666 !important;
-        font-size: 0.9rem;
-        margin-bottom: 1.5rem;
+        color: #4a4a4a !important;
+        font-size: 0.95rem;
+        margin-bottom: 2rem;
+        font-weight: 500;
     }
-    /* Force Input Text Colors for Dark Mode Compatibility inside the White Card */
-    input {
-        color: #333 !important;
+
+    /* FORCE LIGHT MODE INPUTS (Crucial for Mobile Dark Readers) */
+    div[data-baseweb="input"] > div, 
+    div[data-baseweb="select"] > div,
+    input, select {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border-color: #e2e8f0 !important;
     }
-    button[kind="primary"] {
-        background: linear-gradient(to right, #667eea, #764ba2);
+    /* Placeholder color */
+    ::placeholder {
+        color: #a0aec0 !important;
+        opacity: 1; 
+    }
+    /* Input Label Color */
+    label, .stTextInput label, .stSelectbox label {
+        color: #2d3748 !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    /* BUTTONS */
+    div.stButton > button:first-child {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white !important;
         border: none;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: all 0.2s;
+    }
+    div.stButton > button:first-child:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
     }
     
+    /* REMOVE ALL POSSIBLE TOP PADDING */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 2rem;
+    }
+    
+    /* HIDE STREAMLIT BRANDING & MENU */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    [data-testid="stToolbar"] {visibility: hidden !important;}
+    [data-testid="stDecoration"] {display: none;}
+    [data-testid="stHeader"] {display: none;}
+    [data-testid="stSidebarNav"] {display: none;}
+    [data-testid="stManageApp"] {display: none;}
+    [data-testid="stStatusWidget"] {display: none;}
+    .viewerBadge_container__1QSob {display: none !important;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -86,8 +138,6 @@ with lang_cols[1]:
 # Helper to get text
 def txt(key):
     return TRANSLATIONS[st.session_state.language].get(key, key)
-
-st.write("")
 
 # ------------------- LOGIN / REGISTER TOGGLE -------------------
 c1, c2 = st.columns(2)
@@ -126,7 +176,6 @@ if st.session_state.auth_mode == "login":
 
     password_input = st.text_input(txt("password"), type="password", key="login_pass")
     
-    st.write("")
     login_btn = st.button(txt("login"), use_container_width=True, type="primary")
 
     if login_btn:
@@ -170,7 +219,6 @@ elif st.session_state.auth_mode == "register":
         new_email = st.text_input(txt("email"))
         new_pass = st.text_input(txt("password"), type="password")
         
-        st.write("")
         register_btn = st.form_submit_button(txt("register"), use_container_width=True, type="primary")
 
         if register_btn:
