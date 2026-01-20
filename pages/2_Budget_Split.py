@@ -1,11 +1,15 @@
 import streamlit as st
 import pandas as pd
 from datetime import date, datetime, timedelta
-# Import DB functions
 from functions.db_budget import (
     init_budget_db, get_user_goal, set_user_goal, delete_user_goal,
     add_expense, get_monthly_expenses, delete_expense, get_all_expenses_for_chart
 )
+from languages import TRANSLATIONS
+
+# ----------------- PAGE CONFIG -----------------
+# Initial Sidebar State can be collapsed
+st.set_page_config(page_title="Penny Wise - Budget", page_icon="images/logo.png", layout="wide", initial_sidebar_state="collapsed")
 
 # ----------------- LOAD BOOTSTRAP & CUSTOM CSS -----------------
 st.markdown("""
@@ -19,6 +23,11 @@ body {
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
+
+/* HIDE SIDEBAR COMPLETELY */
+[data-testid="stSidebar"] {display: none;}
+[data-testid="stSidebarNav"] {display: none;}
+
 .main-card, .create-card {
     background-color: #ffffff;
     border-radius: 16px;
@@ -117,169 +126,170 @@ if "logged_in" not in st.session_state or not st.session_state.logged_in:
     st.warning("⚠️ Please log in first.")
     st.stop()
 
-# Use user_email for DATABASE keys (Unique)
+# Helper
+if "language" not in st.session_state:
+    st.session_state.language = "English"
+
+def txt(key):
+    return TRANSLATIONS[st.session_state.language].get(key, key)
+
+# Keys
 user_id = st.session_state.get("user_email", st.session_state.get("username"))
-# Use username for DISPLAY (Friendly)
 display_name = st.session_state.get("username", "User")
 
 # --- INITIALIZE DATABASE ---
 init_budget_db()
 
-# ----------------- SIDEBAR -----------------
-with st.sidebar:
-    st.title(f"👤 {display_name}")
-    if st.button("Logout", type="secondary"):
+# ================== MAIN NAVIGATION HEADER ==================
+# No more sidebar. Everything is at the top.
+# Layout: [Logo + Title] [Spacer] [Month Select] [Lang] [Logout]
+
+head_cols = st.columns([1, 4, 2, 2, 1])
+
+with head_cols[0]:
+    st.image("images/logo.png", width=60)
+with head_cols[1]:
+    st.markdown(f"### {display_name}")
+
+# Prepare Month Options
+current_date = date.today()
+month_options = []
+start_date = current_date.replace(day=1) - timedelta(days=365)
+for i in range(24):
+    d = (start_date + timedelta(days=i*31)).replace(day=1)
+    month_options.append(d)
+month_options.sort()
+try:
+    default_idx = month_options.index(current_date.replace(day=1))
+except:
+    default_idx = 0
+
+with head_cols[2]:
+    # Month Selector in Header
+    selected_month_date = st.selectbox(
+        "", 
+        options=month_options, 
+        format_func=lambda x: x.strftime("%B %Y"),
+        index=default_idx,
+        label_visibility="collapsed",
+        key="month_select_top"
+    )
+
+with head_cols[3]:
+    # Language switch in Header
+    sel_lang = st.selectbox("", ["English", "Tamil", "Malayalam"], key="lang_select_top", label_visibility="collapsed", index=["English", "Tamil", "Malayalam"].index(st.session_state.language))
+    if sel_lang != st.session_state.language:
+        st.session_state.language = sel_lang
+        st.rerun()
+
+with head_cols[4]:
+    st.write("") # Spacer
+    if st.button("🚪", help=txt("logout"), type="secondary"):
         st.session_state.logged_in = False
         st.session_state.username = None
         st.session_state.user_email = None
         st.switch_page("app.py")
 
+st.markdown("---")
+
 # ----------------- MAIN LOGIC: CHECK GOAL (DB) -----------------
-# Get monthly income from DB
 total_income = get_user_goal(user_id)
 
 if total_income == 0:
-    # ================= SHOW CREATE GOAL UI =================
-    st.markdown("""
+    st.markdown(f"""
     <div class='create-card'>
-        <h2>🎯 Create New Goal</h2>
-        <p style='color: #666;'>Let's set up your monthly budget plan.</p>
+        <h2>{txt('set_goal_title')}</h2>
+        <p style='color: #666;'>{txt('set_goal_msg')}</p>
     </div>
     """, unsafe_allow_html=True)
 
     with st.container():
-        st.write("") # Spacer
-        income = st.number_input("💰 Enter your monthly income (₹):", min_value=0, step=1000, help="Total income you want to allocate")
+        st.write("") 
+        income = st.number_input(txt("enter_income"), min_value=0, step=1000)
         
         st.write("")
-        if st.button("Set Goal & Start Planning", type="primary"):
+        if st.button(txt("set_goal_btn"), type="primary"):
             if income > 0:
                 if set_user_goal(user_id, income):
-                    st.toast("Goal created! Redirecting...", icon="🚀")
+                    st.toast("Redirecting...", icon="🚀")
                     st.rerun()
                 else:
-                    st.error("Error saving goal to database.")
-            else:
-                st.error("Please enter a valid income amount.")
-    
-    st.stop() # Stop execution here if no goal exists
+                    st.error("Error saving goal.")
+    st.stop()
 
 # ================= SHOW BUDGET SPLIT UI =================
-
-# ----------------- MONTH SELECTOR -----------------
-current_date = date.today()
-month_options = []
-start_date = current_date.replace(day=1) - timedelta(days=365) # Approx 1 year back
-
-for i in range(24): # 2 years window
-    d = (start_date + timedelta(days=i*31)).replace(day=1)
-    month_options.append(d)
-
-month_options.sort()
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 📅 Select Month")
-current_month_start = current_date.replace(day=1)
-try:
-    default_idx = month_options.index(current_month_start)
-except ValueError:
-    default_idx = 0
-
-selected_month_date = st.sidebar.selectbox(
-    "Planning for:", 
-    options=month_options, 
-    format_func=lambda x: x.strftime("%B %Y"),
-    index=default_idx
-)
 
 # ----------------- FETCH DATA (DB) -----------------
 categories = ["Needs", "Wants", "Culture", "Unexpected", "Others"]
 cat_icons = {"Needs": "🏠", "Wants": "🎬", "Culture": "🌍", "Unexpected": "🚑", "Others": "📦"}
+# Translate Category Labels for Display
+cat_labels = {k: txt("categories")[k] for k in categories}
 
-# Get expenses for selected month
 expenses = get_monthly_expenses(user_id, selected_month_date)
-# Calculate totals
 current_monthly_allocated = sum(e["amount"] for e in expenses)
 monthly_balance = float(total_income) - float(current_monthly_allocated)
 
-# ----------------- HEADER SUMMARY & DELETE -----------------
+# ----------------- HEADER SUMMARY -----------------
 c_head, c_del = st.columns([5, 1])
 with c_head:
     st.markdown(f"""
     <div class="summary-box">
-        <h2>Budget for {selected_month_date.strftime("%B %Y")}</h2>
+        <h2>{txt('budget_for')} {selected_month_date.strftime("%B %Y")}</h2>
         <div class="amount">₹{total_income:,}</div>
     </div>
     """, unsafe_allow_html=True)
 with c_del:
-    st.write("") # Spacer
+    st.write("") 
     st.write("")
-    if st.button("🗑️ Reset", help="Delete this goal and start over", type="secondary"):
+    if st.button(txt("reset"), help=txt("reset_help"), type="secondary"):
         if delete_user_goal(user_id):
             st.session_state.clear()
             st.session_state.logged_in = True
-            # Restore session logic after clear (tricky part of streamlit clear)
-            # Actually, better to just clear budget data and rerun
-            # But logic here requests full reset.
-            st.switch_page("app.py") # Force re-login or just reload
+            st.switch_page("app.py")
         else:
-            st.error("Failed to delete goal.")
+            st.error("Failed to delete.")
 
-
-# ----------------- TABS INTERFACE (MANAGE) -----------------
-tabs = st.tabs([f"{cat_icons[c]} {c}" for c in categories])
+# ----------------- TABS INTERFACE -----------------
+# Use Translated Labels in Tabs
+tabs = st.tabs([f"{cat_icons[c]} {cat_labels[c]}" for c in categories])
 
 for i, category in enumerate(categories):
     with tabs[i]:
-        # --- ADD FORM ---
         with st.form(f"add_form_{category}", clear_on_submit=True):
-            st.caption(f"Add expense to {selected_month_date.strftime('%B %Y')}")
+            st.caption(f"{txt('add_item')} {selected_month_date.strftime('%B %Y')}")
             c1, c2, c3, c4 = st.columns([3, 2, 2, 2])
             with c1:
-                new_item = st.text_input("Item Name", placeholder="e.g. Lunch")
+                new_item = st.text_input(txt("item_name"))
             with c2:
-                # Default date = selected month's first day or today
                 if selected_month_date.month == date.today().month and selected_month_date.year == date.today().year:
                     def_date = date.today()
                 else:
                     def_date = selected_month_date
-                
-                new_date = st.date_input("Date", value=def_date)
+                new_date = st.date_input(txt("date"), value=def_date)
             with c3:
-                new_msg = f"Max: ₹{monthly_balance:,}"
-                new_amount = st.number_input("Amount", min_value=0, step=100, help=new_msg)
+                new_amount = st.number_input(txt("amount"), min_value=0, step=100)
             with c4:
-                st.write("") # Align button
                 st.write("") 
-                submitted = st.form_submit_button("➕ Add", type="primary", use_container_width=True)
+                st.write("") 
+                submitted = st.form_submit_button(txt("add_btn"), type="primary", use_container_width=True)
             
             if submitted:
-                if new_date.month != selected_month_date.month or new_date.year != selected_month_date.year:
-                    st.toast(f"⚠️ Note: Item added to {new_date.strftime('%B')}, outside current view.")
-
                 if not new_item:
-                    st.toast("⚠️ Item name is required")
+                    st.toast("⚠️ Name required")
                 elif new_amount <= 0:
-                    st.toast("⚠️ Amount must be greater than 0")
-                elif new_amount > monthly_balance and (new_date.month == selected_month_date.month):
-                    st.toast("⚠️ Amount exceeds remaining budget!")
+                    st.toast("⚠️ Amount > 0")
                 else:
-                    # DB Insert
                     if add_expense(user_id, category, new_item, new_amount, new_date):
                         st.rerun()
                     else:
-                        st.error("Database Error: Could not add item.")
+                        st.error("DB Error")
 
-        # --- LIST VIEW (READ ONLY + DELETE) ---
-        st.markdown(f"#### 📝 {category} List ({selected_month_date.strftime('%B')})")
-        
-        # Filter in-memory from the monthly fetch
+        # --- LIST VIEW ---
         cat_expenses = [e for e in expenses if e["category"] == category]
         
         if not cat_expenses:
-            st.info(f"No items for {category}.")
+            st.info(f"---")
         else:
-            to_remove_id = None
             for exp in cat_expenses:
                 with st.container():
                     c_info, c_del_btn = st.columns([6, 1])
@@ -292,48 +302,38 @@ for i, category in enumerate(categories):
                         </div>
                         """, unsafe_allow_html=True)
                     with c_del_btn:
-                         if st.button("🗑️", key=f"del_{exp['id']}", help="Delete Item"):
-                             to_remove_id = exp["id"]
-            
-            # Remove logic
-            if to_remove_id is not None:
-                if delete_expense(to_remove_id):
-                    st.rerun()
-                else:
-                    st.error("Failed to delete item.")
+                         if st.button("🗑️", key=f"del_{exp['id']}"):
+                             if delete_expense(exp["id"]):
+                                 st.rerun()
 
 # ----------------- FOOTER STATS -----------------
 st.markdown("---")
 st.markdown(f"""
 <div class="stats-container">
     <div class="stat-item">
-        <div class="stat-label">Allocated ({selected_month_date.strftime("%b")})</div>
+        <div class="stat-label">{txt('allocated')} ({selected_month_date.strftime("%b")})</div>
         <div class="stat-val" style="color: #ef4444;">₹{current_monthly_allocated:,}</div>
     </div>
     <div class="stat-item">
-        <div class="stat-label">Remaining ({selected_month_date.strftime("%b")})</div>
+        <div class="stat-label">{txt('remaining')} ({selected_month_date.strftime("%b")})</div>
         <div class="stat-val" style="color: #10b981;">₹{monthly_balance:,}</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-
-# ----------------- ANALYSIS CHART SECTION (DB) -----------------
+# ----------------- CHART -----------------
 st.markdown("---")
-st.markdown("### 📊 Monthly Trends")
+st.markdown(f"### {txt('monthly_trends')}")
 
 all_data = get_all_expenses_for_chart(user_id)
-
 if all_data:
     df = pd.DataFrame(all_data)
-    # Ensure Date type
     df['date'] = pd.to_datetime(df['date'])
     df['Month'] = df['date'].dt.strftime('%Y-%m')
-    df['Amount'] = df['amount'].astype(float) # Ensure float
+    df['Amount'] = df['amount'].astype(float)
     
-    # Group
     monthly_data = df.groupby(["Month", "category"])["Amount"].sum().reset_index()
-    monthly_data.columns = ["Month", "Category", "Amount"] # Fix case for Altair
+    monthly_data.columns = ["Month", "Category", "Amount"]
     
     chart = {
         "mark": "bar",
@@ -345,5 +345,3 @@ if all_data:
         },
     }
     st.vega_lite_chart(monthly_data, chart, use_container_width=True)
-else:
-    st.info("Add items to see spending visualization.")
