@@ -36,6 +36,7 @@ init_users_db()
 # ------------------- CUSTOM PAGE STYLE -------------------
 # ------------------- CUSTOM PAGE STYLE -------------------
 # ------------------- CUSTOM PAGE STYLE -------------------
+# ------------------- CUSTOM PAGE STYLE -------------------
 st.markdown("""
     <style>
     /* Professional Aurora Background */
@@ -45,14 +46,18 @@ st.markdown("""
         background-attachment: fixed;
     }
     
-    /* Login Card Container */
-    .login-card {
+    /* MAIN CONTENT CARD (Replaces broken div wrapper) */
+    .block-container {
         background-color: rgba(255, 255, 255, 0.95);
-        padding: 2.5rem;
+        padding: 2.5rem !important;
         border-radius: 20px;
         box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        margin-top: 0px; /* Remove top margin */
+        margin-top: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.5);
     }
+    
+    /* Login Card helper - DEPRECATED via block-container style, but keeping class for safety if reused */
+    .login-card { display: none; }
 
     /* TYPOGRAPHY */
     .title {
@@ -109,12 +114,6 @@ st.markdown("""
         box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
     }
     
-    /* REMOVE ALL POSSIBLE TOP PADDING */
-    .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 2rem;
-    }
-    
     /* HIDE STREAMLIT BRANDING & MENU */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -151,7 +150,7 @@ with c2:
         st.rerun()
 
 # ------------------- MAIN CARD CONTAINER -------------------
-st.markdown('<div class="login-card">', unsafe_allow_html=True)
+# Card Styling moved to .block-container in CSS
 
 if st.session_state.auth_mode == "login":
     # --- HEADER: Title Left, Logo Right ---
@@ -231,14 +230,3 @@ elif st.session_state.auth_mode == "register":
 
                 full_phone = f"{country_code}{clean_num}"
                 if len(full_phone) > 20:
-                     st.error(txt("phone_long"))
-                else:
-                    db_success = register_user(full_phone, new_email, new_pass)
-                    if db_success:
-                        st.session_state.auth_mode = "login"
-                        st.session_state.reg_success = True
-                        st.rerun()
-                    else:
-                        st.error(txt("exists_error"))
-
-st.markdown('</div>', unsafe_allow_html=True) # Close Login Card
