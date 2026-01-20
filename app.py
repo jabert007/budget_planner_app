@@ -230,3 +230,12 @@ elif st.session_state.auth_mode == "register":
 
                 full_phone = f"{country_code}{clean_num}"
                 if len(full_phone) > 20:
+                    st.error(txt("phone_long"))
+                else:
+                    db_success = register_user(full_phone, new_email, new_pass)
+                    if db_success:
+                        st.session_state.auth_mode = "login"
+                        st.session_state.reg_success = True
+                        st.rerun()
+                    else:
+                        st.error(txt("exists_error"))
