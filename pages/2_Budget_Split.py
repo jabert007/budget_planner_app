@@ -12,9 +12,11 @@ from languages import TRANSLATIONS
 st.set_page_config(page_title="Penny Wise - Budget", page_icon="images/logo.png", layout="wide", initial_sidebar_state="collapsed")
 
 # ----------------- LOAD BOOTSTRAP & CUSTOM CSS -----------------
+# ----------------- LOAD BOOTSTRAP & CUSTOM CSS -----------------
+st.markdown('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">', unsafe_allow_html=True)
+st.markdown('<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">', unsafe_allow_html=True)
+
 st.markdown("""
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 body {
     background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
@@ -24,7 +26,6 @@ body {
 footer {visibility: hidden;}
 header {visibility: hidden;}
 
-/* HIDE SIDEBAR COMPLETELY */
 [data-testid="stSidebar"] {display: none;}
 [data-testid="stSidebarNav"] {display: none;}
 
