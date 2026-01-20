@@ -34,6 +34,7 @@ if "language" not in st.session_state:
 init_users_db()
 
 # ------------------- CUSTOM PAGE STYLE -------------------
+# ------------------- CUSTOM PAGE STYLE -------------------
 st.markdown("""
     <style>
     body {
@@ -42,36 +43,39 @@ st.markdown("""
     .stApp {
         background-color: transparent;
     }
+    .login-card {
+        background-color: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        margin-top: 20px;
+    }
     .title {
-        text-align: center;
+        text-align: left; /* Changed to Left */
         font-size: 1.6rem;
         font-weight: 700;
-        color: #333;
-        margin-bottom: 1rem;
+        color: #333 !important; /* Force Dark Color */
+        margin-bottom: 0.5rem;
     }
     .subtitle {
-        text-align: center;
-        color: #666;
+        text-align: left;
+        color: #666 !important;
         font-size: 0.9rem;
         margin-bottom: 1.5rem;
+    }
+    /* Force Input Text Colors for Dark Mode Compatibility inside the White Card */
+    input {
+        color: #333 !important;
     }
     button[kind="primary"] {
         background: linear-gradient(to right, #667eea, #764ba2);
         color: white !important;
         border: none;
     }
-    .brand-logo {
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        width: 100px;
-        margin-bottom: 20px;
-    }
     </style>
 """, unsafe_allow_html=True)
 
 # ------------------- LANGUAGE SELECTOR -------------------
-# Top right corner logic or just top center
 lang_cols = st.columns([8, 2])
 with lang_cols[1]:
     sel_lang = st.selectbox("", ["English", "Tamil", "Malayalam"], key="lang_select", label_visibility="collapsed")
@@ -81,9 +85,6 @@ with lang_cols[1]:
 def txt(key):
     return TRANSLATIONS[st.session_state.language].get(key, key)
 
-# ------------------- BRANDING -------------------
-st.image("images/logo.png", width=120) 
-st.markdown(f"<h1 style='text-align: center; color: white;'>{txt('app_name')}</h1>", unsafe_allow_html=True)
 st.write("")
 
 # ------------------- LOGIN / REGISTER TOGGLE -------------------
@@ -97,20 +98,24 @@ with c2:
         st.session_state.auth_mode = "register"
         st.rerun()
 
-st.write("") 
-
-# ------------------- FORMS -------------------
+# ------------------- MAIN CARD CONTAINER -------------------
+st.markdown('<div class="login-card">', unsafe_allow_html=True)
 
 if st.session_state.auth_mode == "login":
-    # --- LOGIN FORM ---
-    st.markdown(f'<div class="title">{txt("welcome")}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="subtitle">{txt("signin_msg")}</div>', unsafe_allow_html=True)
+    # --- HEADER: Title Left, Logo Right ---
+    h1, h2 = st.columns([3, 1])
+    with h1:
+        st.markdown(f'<div class="title">{txt("welcome")}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="subtitle">{txt("signin_msg")}</div>', unsafe_allow_html=True)
+    with h2:
+        st.image("images/logo.png", width=70)
 
     if "reg_success" in st.session_state and st.session_state.reg_success:
         st.success(txt("reg_success"))
         del st.session_state["reg_success"]
 
-    # Country Code & Phone Split
+    # --- LOGIN FORM ---
+    # Country Code & Phone Split for LOGIN
     c_code, c_num = st.columns([1.5, 3.5])
     with c_code:
         l_country_code = st.selectbox(txt("code"), ["+91", "+1", "+44", "+971", "+61", "+81", "+49", "+33"], index=0, key="l_code")
@@ -126,7 +131,7 @@ if st.session_state.auth_mode == "login":
         if not l_phone_num or not password_input:
             st.error(txt("req_fields"))
         else:
-            # Sanitize: If user typed +91 in the text box, remove it to avoid +91+91...
+            # Sanitize
             clean_num = l_phone_num.strip()
             if clean_num.startswith(l_country_code):
                 clean_num = clean_num[len(l_country_code):]
@@ -145,9 +150,13 @@ if st.session_state.auth_mode == "login":
 
 
 elif st.session_state.auth_mode == "register":
-    # --- REGISTER FORM ---
-    st.markdown(f'<div class="title">{txt("create_account")}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="subtitle">{txt("join_msg")}</div>', unsafe_allow_html=True)
+    # --- HEADER: Title Left, Logo Right ---
+    h1, h2 = st.columns([3, 1])
+    with h1:
+        st.markdown(f'<div class="title">{txt("create_account")}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="subtitle">{txt("join_msg")}</div>', unsafe_allow_html=True)
+    with h2:
+        st.image("images/logo.png", width=70)
 
     with st.form("register_form", clear_on_submit=True):
         c_code, c_num = st.columns([1.5, 3.5])
@@ -166,7 +175,6 @@ elif st.session_state.auth_mode == "register":
             if not phone_num or not new_email or not new_pass:
                 st.error(txt("req_fields"))
             else:
-                # Sanitize: If user typed +91...
                 clean_num = phone_num.strip()
                 if clean_num.startswith(country_code):
                     clean_num = clean_num[len(country_code):]
@@ -182,3 +190,5 @@ elif st.session_state.auth_mode == "register":
                         st.rerun()
                     else:
                         st.error(txt("exists_error"))
+
+st.markdown('</div>', unsafe_allow_html=True) # Close Login Card
