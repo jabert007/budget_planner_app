@@ -49,6 +49,7 @@ st.markdown("""
         border-radius: 15px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         margin-top: 20px;
+        display: table-column;
     }
     .title {
         text-align: left; /* Changed to Left */
@@ -72,6 +73,7 @@ st.markdown("""
         color: white !important;
         border: none;
     }
+    
     </style>
 """, unsafe_allow_html=True)
 
