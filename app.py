@@ -31,7 +31,10 @@ if "language" not in st.session_state:
     st.session_state.language = "English"
 
 # ------------------- INIT DB -------------------
-init_users_db()
+# ------------------- INIT DB -------------------
+if "db_init_done" not in st.session_state:
+    init_users_db()
+    st.session_state.db_init_done = True
 
 # ------------------- CUSTOM PAGE STYLE -------------------
 # ------------------- CUSTOM PAGE STYLE -------------------
@@ -166,16 +169,17 @@ if st.session_state.auth_mode == "login":
         del st.session_state["reg_success"]
 
     # --- LOGIN FORM ---
-    # Country Code & Phone Split for LOGIN
-    c_code, c_num = st.columns([1.5, 3.5])
-    with c_code:
-        l_country_code = st.selectbox(txt("code"), ["+91", "+1", "+44", "+971", "+61", "+81", "+49", "+33"], index=0, key="l_code")
-    with c_num:
-        l_phone_num = st.text_input(txt("mobile"), placeholder="9876543210", key="l_phone")
+    with st.form("login_form"):
+        # Country Code & Phone Split for LOGIN
+        c_code, c_num = st.columns([1.5, 3.5])
+        with c_code:
+            l_country_code = st.selectbox(txt("code"), ["+91", "+1", "+44", "+971", "+61", "+81", "+49", "+33"], index=0, key="l_code")
+        with c_num:
+            l_phone_num = st.text_input(txt("mobile"), placeholder="9876543210", key="l_phone")
 
-    password_input = st.text_input(txt("password"), type="password", key="login_pass")
-    
-    login_btn = st.button(txt("login"), use_container_width=True, type="primary")
+        password_input = st.text_input(txt("password"), type="password", key="login_pass")
+        
+        login_btn = st.form_submit_button(txt("login"), use_container_width=True, type="primary")
 
     if login_btn:
         if not l_phone_num or not password_input:
